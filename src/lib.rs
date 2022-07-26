@@ -1,8 +1,8 @@
 #![feature(const_trait_impl)]
 
-// This macro creates a function that has a list of strips of consecutive characters, as long
-// as long as there is at most one strip in each chunk of 32 characters (character codes
-// 0 to 31, 32 to 63, etc.).
+// This macro creates a function that has a list of strips of consecutive characters, as
+// long as there is at most one strip in each chunk of 32 characters (character codes 0
+// to 31, 32 to 63, etc.).
 macro_rules! is_in_a_strip_fn {
     ($x: ident, $x_type: ty, $starting_chars: expr, $char_counts: expr) => {{
         let shift_amount = (($x as u8).wrapping_shr(2) & 0b0011_1000) as u32;
