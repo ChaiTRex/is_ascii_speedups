@@ -1,9 +1,7 @@
-use core::cell::RefCell;
-use core::time::Duration;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use is_ascii_speedups::IsAscii2;
-use rand::{thread_rng, RngCore};
-use std::rc::Rc;
+use rand::{Rng, thread_rng};
+use rand::distributions::Standard;
 
 macro_rules! ascii_bench {
     ($c: ident, $random_u8s: ident, $random_chars: ident, $ascii_u8s: ident, $ascii_chars: ident, $sorted_u8s: ident, $sorted_chars: ident, $name: ident, $one: ident, $two: ident) => {
@@ -58,31 +56,17 @@ macro_rules! ascii_bench {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let rng = Rc::new(RefCell::new(thread_rng()));
-
-    let mut random_u8s = {
-        let rng = rng.clone();
-        core::iter::from_fn(move || Some(rng.borrow_mut().next_u64().to_ne_bytes())).flatten()
-    };
-    let mut ascii_u8s = {
-        let rng = rng.clone();
-        core::iter::from_fn(move || Some(rng.borrow_mut().next_u64().to_ne_bytes()))
-            .flatten()
-            .map(|x| x & 0b0111_1111)
-    };
+    let mut random_u8s = thread_rng().sample_iter::<u8, Standard>(Standard);
+    let mut ascii_u8s = thread_rng().sample_iter::<u8, Standard>(Standard).map(|ch| ch & 0b0111_1111);
     let mut sorted_u8s = (0..=u8::MAX).cycle();
 
-    let mut random_chars = {
-        let rng = rng.clone();
-        core::iter::from_fn(move || Some(rng.borrow_mut().next_u32()))
-            .flat_map(|ch| char::try_from(ch & 0x0001f_ffff))
-    };
-    let mut ascii_chars = {
-        let rng = rng.clone();
-        core::iter::from_fn(move || Some(rng.borrow_mut().next_u64().to_ne_bytes()))
-            .flatten()
-            .map(|ch| char::from(ch & 0b0111_1111))
-    };
+    let mut random_chars = thread_rng().sample_iter::<u32, Standard>(Standard)
+        .map(|mut ch| {
+            ch %= 0x0010_f800;
+            ch += if ch < 0x0000_d800 { 0 } else { 0x0000_0800 };
+            unsafe { char::from_u32_unchecked(ch) }
+        });
+    let mut ascii_chars = thread_rng().sample_iter::<u8, Standard>(Standard).map(|ch| char::from(ch & 0b0111_1111));
     let mut sorted_chars = ('\0'..='\u{d7ff}').chain('\u{e000}'..='\u{10ffff}').cycle();
 
     ascii_bench!(
@@ -231,7 +215,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
 criterion_group! {
     name = benches;
-    config = Criterion::default().warm_up_time(Duration::from_secs(5));
+    config = Criterion::default();
     targets = criterion_benchmark
 }
 criterion_main!(benches);
