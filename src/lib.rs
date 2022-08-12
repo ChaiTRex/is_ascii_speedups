@@ -1,17 +1,29 @@
-#![feature(const_trait_impl)]
+#![feature(const_trait_impl, const_slice_index)]
 
-// This macro creates a function that has a list of strips of consecutive characters, as
-// long as there is at most one strip in each chunk of 32 characters (character codes 0
-// to 31, 32 to 63, etc.).
+// This macro creates part of a function that has a list of strips of consecutive characters
+// as long as there is at most one strip in each chunk of 32 characters (character codes
+// 0 to 31, 32 to 63, etc.).
 macro_rules! is_in_a_strip_fn {
     ($x: ident, $x_type: ty, $starting_chars: expr, $char_counts: expr) => {{
-        let shift_amount = (($x as u8).wrapping_shr(2) & 0b0011_1000) as u32;
+        // 32-character chunk number.
+        let chunk_number = ($x as u8 & 0b1110_0000).wrapping_shr(5) as usize;
 
+        // This `u64` is secretly a `[u8; 8]`.
         const STARTING_CHARS: u64 = u64::from_le_bytes($starting_chars);
-        let x = $x.wrapping_sub(STARTING_CHARS.wrapping_shr(shift_amount) as u8 as $x_type);
+        // Subtract the starting `char` of this chunk from the input `char`. This will
+        // make sure the matching `char`s are in
+        // `0..number_of_valid_chars_in_this_chunk`.
+        let x =
+            $x.wrapping_sub(
+                *unsafe { u64::to_le_bytes(STARTING_CHARS).get_unchecked(chunk_number) } as u8
+                    as $x_type,
+            );
 
+        // This `u64` is secretly a `[u8; 8]`.
         const CHAR_COUNTS: u64 = u64::from_le_bytes($char_counts);
-        x < CHAR_COUNTS.wrapping_shr(shift_amount) as u8 as $x_type
+        // Check whether the adjusted value of the input `char` is in
+        // `0..number_of_valid_chars_in_this_chunk`.
+        x < *unsafe { u64::to_le_bytes(CHAR_COUNTS).get_unchecked(chunk_number) } as u8 as $x_type
     }};
 }
 

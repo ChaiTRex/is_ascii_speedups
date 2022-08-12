@@ -3,7 +3,7 @@ use is_ascii_speedups::IsAscii2;
 use rand::distributions::Standard;
 use rand::{thread_rng, Rng};
 
-macro_rules! ascii_bench {
+macro_rules! ascii_benches {
     (
         $name: ident,
         $this_method_u8s: ident,
@@ -321,7 +321,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut u8_string: Vec<u8> = Vec::with_capacity(64);
     let mut char_string: String = String::with_capacity(256);
 
-    ascii_bench!(
+    ascii_benches!(
         ascii,
         ascii_u8s,
         is_ascii,
@@ -334,7 +334,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         char_string,
     );
 
-    ascii_bench!(
+    ascii_benches!(
         alphabetic,
         alphabetic_u8s,
         is_ascii_alphabetic,
@@ -347,7 +347,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         char_string,
     );
 
-    ascii_bench!(
+    ascii_benches!(
         alphanumeric,
         alphanumeric_u8s,
         is_ascii_alphanumeric,
@@ -360,7 +360,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         char_string,
     );
 
-    ascii_bench!(
+    ascii_benches!(
         control,
         control_u8s,
         is_ascii_control,
@@ -373,7 +373,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         char_string,
     );
 
-    ascii_bench!(
+    ascii_benches!(
         digit,
         digit_u8s,
         is_ascii_digit,
@@ -386,7 +386,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         char_string,
     );
 
-    ascii_bench!(
+    ascii_benches!(
         graphic,
         graphic_u8s,
         is_ascii_graphic,
@@ -399,7 +399,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         char_string,
     );
 
-    ascii_bench!(
+    ascii_benches!(
         hexdigit,
         hexdigit_u8s,
         is_ascii_hexdigit,
@@ -412,7 +412,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         char_string,
     );
 
-    ascii_bench!(
+    ascii_benches!(
         lowercase,
         lowercase_u8s,
         is_ascii_lowercase,
@@ -425,7 +425,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         char_string,
     );
 
-    ascii_bench!(
+    ascii_benches!(
         punctuation,
         punctuation_u8s,
         is_ascii_punctuation,
@@ -438,7 +438,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         char_string,
     );
 
-    ascii_bench!(
+    ascii_benches!(
         uppercase,
         uppercase_u8s,
         is_ascii_uppercase,
@@ -451,7 +451,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         char_string,
     );
 
-    ascii_bench!(
+    ascii_benches!(
         whitespace,
         whitespace_u8s,
         is_ascii_whitespace,
