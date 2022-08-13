@@ -9,21 +9,21 @@ macro_rules! is_in_a_strip_fn {
         let chunk_number = ($x as u8 & 0b1110_0000).wrapping_shr(5) as usize;
 
         // This `u64` is secretly a `[u8; 8]`.
-        const STARTING_CHARS: u64 = u64::from_le_bytes($starting_chars);
+        const STARTING_CHARS: u64 = u64::from_ne_bytes($starting_chars);
         // Subtract the starting `char` of this chunk from the input `char`. This will
         // make sure the matching `char`s are in
         // `0..number_of_valid_chars_in_this_chunk`.
         let x =
             $x.wrapping_sub(
-                *unsafe { u64::to_le_bytes(STARTING_CHARS).get_unchecked(chunk_number) } as u8
+                *unsafe { u64::to_ne_bytes(STARTING_CHARS).get_unchecked(chunk_number) } as u8
                     as $x_type,
             );
 
         // This `u64` is secretly a `[u8; 8]`.
-        const CHAR_COUNTS: u64 = u64::from_le_bytes($char_counts);
+        const CHAR_COUNTS: u64 = u64::from_ne_bytes($char_counts);
         // Check whether the adjusted value of the input `char` is in
         // `0..number_of_valid_chars_in_this_chunk`.
-        x < *unsafe { u64::to_le_bytes(CHAR_COUNTS).get_unchecked(chunk_number) } as u8 as $x_type
+        x < *unsafe { u64::to_ne_bytes(CHAR_COUNTS).get_unchecked(chunk_number) } as u8 as $x_type
     }};
 }
 
