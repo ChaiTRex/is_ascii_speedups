@@ -10,22 +10,21 @@ macro_rules! handle_strip_of_each_chunk {
         // 32-codepoint chunk number.
         let chunk_number = ($x as u8 & 0b1110_0000).wrapping_shr(5) as usize;
 
-        // This `u64` is secretly a `[u8; 8]`.
-        const STARTING_CODEPOINTS: u64 = u64::from_ne_bytes($starting_codepoints);
+        // `const` to type check and to ensure all element evaluations are done at
+        // compile time
+        const STARTING_CODEPOINTS: [u8; 8] = $starting_codepoints;
         // Subtract the starting codepoint of this chunk from the input codepoint. This
-        // will make sure the matching codepoints in this strip are in
+        // will make sure that the matching codepoints in this strip are in
         // `0..length_of_strip`.
-        let x = $x.wrapping_sub(*unsafe {
-            (*(&STARTING_CODEPOINTS as *const u64).cast::<[u8; 8]>()).get_unchecked(chunk_number)
-        } as $x_type);
+        let x =
+            $x.wrapping_sub(*unsafe { STARTING_CODEPOINTS.get_unchecked(chunk_number) } as $x_type);
 
-        // This `u64` is secretly a `[u8; 8]`.
-        const STRIP_LENGTHS: u64 = u64::from_ne_bytes($strip_lengths);
+        // `const` to type check and to ensure all element evaluations are done at
+        // compile time
+        const STRIP_LENGTHS: [u8; 8] = $strip_lengths;
         // Check whether the adjusted value of the input codepoint is in
         // `0..length_of_strip`.
-        x < *unsafe {
-            (*(&STRIP_LENGTHS as *const u64).cast::<[u8; 8]>()).get_unchecked(chunk_number)
-        } as $x_type
+        x < *unsafe { STRIP_LENGTHS.get_unchecked(chunk_number) } as $x_type
     }};
 }
 
@@ -161,7 +160,7 @@ impl const IsAscii2 for char {
         // inputs for every output. The exact two possible inputs for outputs `'a'`
         // through `'z'` are the lowercase and uppercase versions of each letter, so we
         // only need to check whether it's a lowercase letter.
-        let x = ((*self as u32) | 0b0010_0000).wrapping_sub(b'a' as u32);
+        let x = ((*self as u32) | 0b0010_0000).wrapping_sub('a' as u32);
         x < 26
     }
 
