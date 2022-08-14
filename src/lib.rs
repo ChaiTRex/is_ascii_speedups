@@ -1,29 +1,31 @@
-#![feature(const_trait_impl, const_slice_index)]
+#![no_std]
+#![feature(const_slice_index, const_trait_impl)]
 
-// This macro creates part of a function that has a list of strips of consecutive characters
-// as long as there is at most one strip in each chunk of 32 characters (character codes
-// 0 to 31, 32 to 63, etc.).
-macro_rules! is_in_a_strip_fn {
-    ($x: ident, $x_type: ty, $starting_chars: expr, $char_counts: expr) => {{
-        // 32-character chunk number.
+// This macro creates part of a function that handles up to eight strips of consecutive
+// matching codepoints. The strips must all be in separate 32-codepoint chunks
+// (codepoints 0 to 31, 32 to 63, 64 to 95, 96 to 127, 128 to 159, 160 to 191,
+// 192 to 223, or 224 to 255).
+macro_rules! handle_strip_of_each_chunk {
+    ($x: ident, $x_type: ty, $starting_codepoints: expr, $strip_lengths: expr) => {{
+        // 32-codepoint chunk number.
         let chunk_number = ($x as u8 & 0b1110_0000).wrapping_shr(5) as usize;
 
         // This `u64` is secretly a `[u8; 8]`.
-        const STARTING_CHARS: u64 = u64::from_ne_bytes($starting_chars);
-        // Subtract the starting `char` of this chunk from the input `char`. This will
-        // make sure the matching `char`s are in
-        // `0..number_of_valid_chars_in_this_chunk`.
-        let x =
-            $x.wrapping_sub(
-                *unsafe { u64::to_ne_bytes(STARTING_CHARS).get_unchecked(chunk_number) } as u8
-                    as $x_type,
-            );
+        const STARTING_CODEPOINTS: u64 = u64::from_ne_bytes($starting_codepoints);
+        // Subtract the starting codepoint of this chunk from the input codepoint. This
+        // will make sure the matching codepoints in this strip are in
+        // `0..length_of_strip`.
+        let x = $x.wrapping_sub(*unsafe {
+            (*(&STARTING_CODEPOINTS as *const u64).cast::<[u8; 8]>()).get_unchecked(chunk_number)
+        } as $x_type);
 
         // This `u64` is secretly a `[u8; 8]`.
-        const CHAR_COUNTS: u64 = u64::from_ne_bytes($char_counts);
-        // Check whether the adjusted value of the input `char` is in
-        // `0..number_of_valid_chars_in_this_chunk`.
-        x < *unsafe { u64::to_ne_bytes(CHAR_COUNTS).get_unchecked(chunk_number) } as u8 as $x_type
+        const STRIP_LENGTHS: u64 = u64::from_ne_bytes($strip_lengths);
+        // Check whether the adjusted value of the input codepoint is in
+        // `0..length_of_strip`.
+        x < *unsafe {
+            (*(&STRIP_LENGTHS as *const u64).cast::<[u8; 8]>()).get_unchecked(chunk_number)
+        } as $x_type
     }};
 }
 
@@ -51,15 +53,19 @@ impl const IsAscii2 for u8 {
     #[must_use]
     #[inline]
     fn is_ascii_alphabetic_2(&self) -> bool {
-        let x = *self & 0b1101_1111;
-        x <= b'Z' && x >= b'A'
+        // `| 0b0010_0000` loses one bit of information, giving exactly two possible
+        // inputs for every output. The exact two possible inputs for outputs `b'a'`
+        // through `b'z'` are the lowercase and uppercase versions of each letter, so we
+        // only need to check whether it's a lowercase letter.
+        let x = (*self | 0b0010_0000).wrapping_sub(b'a');
+        x < 26
     }
 
     #[must_use]
     #[inline]
     fn is_ascii_alphanumeric_2(&self) -> bool {
         let x = *self;
-        is_in_a_strip_fn!(
+        handle_strip_of_each_chunk!(
             x,
             u8,
             [0, b'0', b'A', b'a', 0, 0, 0, 0],
@@ -77,22 +83,22 @@ impl const IsAscii2 for u8 {
     #[must_use]
     #[inline]
     fn is_ascii_digit_2(&self) -> bool {
-        let x = *self;
-        x <= b'9' && x >= b'0'
+        let x = self.wrapping_sub(b'0');
+        x < 10
     }
 
     #[must_use]
     #[inline]
     fn is_ascii_graphic_2(&self) -> bool {
-        let x = *self;
-        x <= b'~' && x >= b'!'
+        let x = self.wrapping_sub(b'!');
+        x < 94
     }
 
     #[must_use]
     #[inline]
     fn is_ascii_hexdigit_2(&self) -> bool {
         let x = *self;
-        is_in_a_strip_fn!(
+        handle_strip_of_each_chunk!(
             x,
             u8,
             [0, b'0', b'A', b'a', 0, 0, 0, 0],
@@ -103,15 +109,18 @@ impl const IsAscii2 for u8 {
     #[must_use]
     #[inline]
     fn is_ascii_lowercase_2(&self) -> bool {
-        let x = *self;
-        x <= b'z' && x >= b'a'
+        let x = self.wrapping_sub(b'a');
+        x < 26
     }
 
     #[must_use]
     #[inline]
     fn is_ascii_punctuation_2(&self) -> bool {
+        // Add 6 to the codepoint so that each strip of consecutive matching codepoints
+        // is in a separate 32-codepoint chunk. For more details, see the comment above
+        // the `handle_strip_of_each_chunk` macro definition.
         let x = (*self).wrapping_add(6);
-        is_in_a_strip_fn!(
+        handle_strip_of_each_chunk!(
             x,
             u8,
             [0, b'!' + 6, b':' + 6, b'[' + 6, b'{' + 6, 0, 0, 0],
@@ -122,13 +131,17 @@ impl const IsAscii2 for u8 {
     #[must_use]
     #[inline]
     fn is_ascii_uppercase_2(&self) -> bool {
-        let x = *self;
-        x <= b'Z' && x >= b'A'
+        let x = self.wrapping_sub(b'A');
+        x < 26
     }
 
     #[must_use]
     #[inline]
     fn is_ascii_whitespace_2(&self) -> bool {
+        // The long binary number has bit indexes starting at 0 on the right and going
+        // leftward until it ends at bit index 32. The bit index corresponds to the
+        // codepoint of the input `u8`. The value of the bit there is 1 iff the `u8` is
+        // an ASCII whitespace codepoint.
         let x = *self;
         x <= b' ' && (0b100000000000000000011011000000000_u64.wrapping_shr(x as u32) & 1) != 0
     }
@@ -144,15 +157,19 @@ impl const IsAscii2 for char {
     #[must_use]
     #[inline]
     fn is_ascii_alphabetic_2(&self) -> bool {
-        let x = (*self as u32) & 0b1111_1111_1111_1111_1111_1111_1101_1111;
-        x <= 90 && x >= 65
+        // `| 0b0010_0000` loses one bit of information, giving exactly two possible
+        // inputs for every output. The exact two possible inputs for outputs `'a'`
+        // through `'z'` are the lowercase and uppercase versions of each letter, so we
+        // only need to check whether it's a lowercase letter.
+        let x = ((*self as u32) | 0b0010_0000).wrapping_sub(b'a' as u32);
+        x < 26
     }
 
     #[must_use]
     #[inline]
     fn is_ascii_alphanumeric_2(&self) -> bool {
         let x = *self as u32;
-        is_in_a_strip_fn!(
+        handle_strip_of_each_chunk!(
             x,
             u32,
             [0, b'0', b'A', b'a', 0, 0, 0, 0],
@@ -170,22 +187,22 @@ impl const IsAscii2 for char {
     #[must_use]
     #[inline]
     fn is_ascii_digit_2(&self) -> bool {
-        let x = *self;
-        x <= '9' && x >= '0'
+        let x = (*self as u32).wrapping_sub('0' as u32);
+        x < 10
     }
 
     #[must_use]
     #[inline]
     fn is_ascii_graphic_2(&self) -> bool {
-        let x = *self;
-        x <= '~' && x >= '!'
+        let x = (*self as u32).wrapping_sub('!' as u32);
+        x < 94
     }
 
     #[must_use]
     #[inline]
     fn is_ascii_hexdigit_2(&self) -> bool {
         let x = *self as u32;
-        is_in_a_strip_fn!(
+        handle_strip_of_each_chunk!(
             x,
             u32,
             [0, b'0', b'A', b'a', 0, 0, 0, 0],
@@ -196,15 +213,18 @@ impl const IsAscii2 for char {
     #[must_use]
     #[inline]
     fn is_ascii_lowercase_2(&self) -> bool {
-        let x = *self;
-        x <= 'z' && x >= 'a'
+        let x = (*self as u32).wrapping_sub('a' as u32);
+        x < 26
     }
 
     #[must_use]
     #[inline]
     fn is_ascii_punctuation_2(&self) -> bool {
+        // Add 6 to the codepoint so that each strip of consecutive matching codepoints
+        // is in a separate 32-codepoint chunk. For more details, see the comment above
+        // the `handle_strip_of_each_chunk` macro definition.
         let x = (*self as u32).wrapping_add(6);
-        is_in_a_strip_fn!(
+        handle_strip_of_each_chunk!(
             x,
             u32,
             [0, b'!' + 6, b':' + 6, b'[' + 6, b'{' + 6, 0, 0, 0],
@@ -215,15 +235,19 @@ impl const IsAscii2 for char {
     #[must_use]
     #[inline]
     fn is_ascii_uppercase_2(&self) -> bool {
-        let x = *self;
-        x <= 'Z' && x >= 'A'
+        let x = (*self as u32).wrapping_sub('A' as u32);
+        x < 26
     }
 
     #[must_use]
     #[inline]
     fn is_ascii_whitespace_2(&self) -> bool {
-        let x = *self;
-        x <= ' ' && (0b100000000000000000011011000000000_u64.wrapping_shr(x as u32) & 1) != 0
+        // The long binary number has bit indexes starting at 0 on the right and going
+        // leftward until it ends at bit index 32. The bit index corresponds to the
+        // codepoint of the input `char`. The value of the bit there is 1 iff the `char`
+        // is an ASCII whitespace codepoint.
+        let x = *self as u32;
+        x <= ' ' as u32 && (0b100000000000000000011011000000000_u64.wrapping_shr(x) & 1) != 0
     }
 }
 
