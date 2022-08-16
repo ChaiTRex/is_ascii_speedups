@@ -8,7 +8,7 @@
 macro_rules! handle_strip_of_each_chunk {
     ($x: ident, $x_type: ty, $starting_codepoints: expr, $strip_lengths: expr) => {{
         // 32-codepoint chunk number.
-        let chunk_number = ($x as u8 & 0b1110_0000).wrapping_shr(5) as usize;
+        let chunk_number = ($x as u8 >> 5) as usize;
 
         // `const` to type check and to ensure all element evaluations are done at
         // compile time
@@ -16,15 +16,14 @@ macro_rules! handle_strip_of_each_chunk {
         // Subtract the starting codepoint of this chunk from the input codepoint. This
         // will make sure that the matching codepoints in this strip are in
         // `0..length_of_strip`.
-        let x =
-            $x.wrapping_sub(*unsafe { STARTING_CODEPOINTS.get_unchecked(chunk_number) } as $x_type);
+        let x = $x.wrapping_sub(STARTING_CODEPOINTS[chunk_number] as $x_type);
 
         // `const` to type check and to ensure all element evaluations are done at
         // compile time
         const STRIP_LENGTHS: [u8; 8] = $strip_lengths;
         // Check whether the adjusted value of the input codepoint is in
         // `0..length_of_strip`.
-        x < *unsafe { STRIP_LENGTHS.get_unchecked(chunk_number) } as $x_type
+        x < STRIP_LENGTHS[chunk_number] as $x_type
     }};
 }
 
