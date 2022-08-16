@@ -4,5 +4,5 @@ rm -rf benches.txt target/criterion
 stdbuf -i0 -o0 -e0 cargo +nightly bench --quiet |
   stdbuf -i0 -o0 -e0 egrep -v '^( *$|running|i|test|Benchmarking|Found|  [0-9])' |
   stdbuf -i0 -o0 -e0 runghc Process.hs |
-  stdbuf -i0 -o0 -e0 ruby -e '$stdout.sync = true; puts "═"*78; ARGF.each_with_index { |line, i| puts line; case i % 16; when 1, 3, 5, 9, 11, 13 then puts; when 7 then puts "─"*78; when 15 then puts "═"*78; end }' |
+  stdbuf -i0 -o0 -e0 ruby -e '$stdout.sync = true; puts "═"*78; ARGF.each_with_index { |line, i| puts line; case i % 24; when 1, 3, 5, 7, 9, 13, 15, 17, 19, 21 then puts; when 11 then puts "─"*78; when 23 then puts "═"*78; end }' |
   tee benches.txt

@@ -117,7 +117,7 @@ impl const IsAscii2 for u8 {
         // Add 6 to the codepoint so that each strip of consecutive matching codepoints
         // is in a separate 32-codepoint chunk. For more details, see the comment above
         // the `handle_strip_of_each_chunk` macro definition.
-        let x = (*self).wrapping_add(6);
+        let x = self.wrapping_add(6);
         handle_strip_of_each_chunk!(
             x,
             u8,
@@ -141,7 +141,7 @@ impl const IsAscii2 for u8 {
         // codepoint of the input `u8`. The value of the bit there is 1 iff the `u8` is
         // an ASCII whitespace codepoint.
         let x = *self;
-        x <= b' ' && (0b100000000000000000011011000000000_u64.wrapping_shr(x as u32) & 1) != 0
+        x <= b' ' && ((0b1_0000_0000_0000_0000_0011_0110_0000_0000_u64 >> x) & 1) != 0
     }
 }
 
@@ -245,7 +245,7 @@ impl const IsAscii2 for char {
         // codepoint of the input `char`. The value of the bit there is 1 iff the `char`
         // is an ASCII whitespace codepoint.
         let x = *self as u32;
-        x <= ' ' as u32 && (0b100000000000000000011011000000000_u64.wrapping_shr(x) & 1) != 0
+        x <= ' ' as u32 && ((0b1_0000_0000_0000_0000_0011_0110_0000_0000_u64 >> x) & 1) != 0
     }
 }
 

@@ -86,6 +86,78 @@ macro_rules! ascii_benches {
             },
         );
 
+        $c.bench_function(
+            concat!(
+                "old_",
+                stringify!($name),
+                "_count_starting_u8_matches_cache_buster"
+            ),
+            |b| {
+                b.iter(|| {
+                    let length = (u32::from_ne_bytes([(); 4].map(|_| $random_u8s.next().unwrap()))
+                        % ((2 << 20) + 1)) as usize;
+                    $u8_string.clear();
+                    $u8_string.extend($this_method_u8s.by_ref().take(length));
+                    $u8_string.extend($random_u8s.by_ref().take((2 << 20) - length));
+                    black_box($u8_string.iter().take_while(|ch| ch.$old_method()).count())
+                })
+            },
+        );
+
+        $c.bench_function(
+            concat!(
+                "new_",
+                stringify!($name),
+                "_count_starting_u8_matches_cache_buster"
+            ),
+            |b| {
+                b.iter(|| {
+                    let length = (u32::from_ne_bytes([(); 4].map(|_| $random_u8s.next().unwrap()))
+                        % ((2 << 20) + 1)) as usize;
+                    $u8_string.clear();
+                    $u8_string.extend($this_method_u8s.by_ref().take(length));
+                    $u8_string.extend($random_u8s.by_ref().take((2 << 20) - length));
+                    black_box($u8_string.iter().take_while(|ch| ch.$new_method()).count())
+                })
+            },
+        );
+
+        $c.bench_function(
+            concat!(
+                "old_",
+                stringify!($name),
+                "_count_all_u8_matches_cache_buster"
+            ),
+            |b| {
+                b.iter(|| {
+                    let length = (u32::from_ne_bytes([(); 4].map(|_| $random_u8s.next().unwrap()))
+                        % ((2 << 20) + 1)) as usize;
+                    $u8_string.clear();
+                    $u8_string.extend($this_method_u8s.by_ref().take(length));
+                    $u8_string.extend($random_u8s.by_ref().take((2 << 20) - length));
+                    black_box($u8_string.iter().filter(|ch| ch.$old_method()).count())
+                })
+            },
+        );
+
+        $c.bench_function(
+            concat!(
+                "new_",
+                stringify!($name),
+                "_count_all_u8_matches_cache_buster"
+            ),
+            |b| {
+                b.iter(|| {
+                    let length = (u32::from_ne_bytes([(); 4].map(|_| $random_u8s.next().unwrap()))
+                        % ((2 << 20) + 1)) as usize;
+                    $u8_string.clear();
+                    $u8_string.extend($this_method_u8s.by_ref().take(length));
+                    $u8_string.extend($random_u8s.by_ref().take((2 << 20) - length));
+                    black_box($u8_string.iter().filter(|ch| ch.$new_method()).count())
+                })
+            },
+        );
+
         $c.bench_function(concat!("old_", stringify!($name), "_random_chars"), |b| {
             b.iter(|| black_box($random_chars.next().unwrap()).$old_method())
         });
@@ -191,6 +263,108 @@ macro_rules! ascii_benches {
                             .take(length),
                     );
                     $char_string.extend($random_chars.by_ref().take(64 - length));
+                    black_box($char_string.chars().filter(|ch| ch.$new_method()).count())
+                })
+            },
+        );
+
+        $c.bench_function(
+            concat!(
+                "old_",
+                stringify!($name),
+                "_count_starting_char_matches_cache_buster"
+            ),
+            |b| {
+                b.iter(|| {
+                    let length = (u32::from_ne_bytes([(); 4].map(|_| $random_u8s.next().unwrap()))
+                        % ((2 << 20) + 1)) as usize;
+                    $char_string.clear();
+                    $char_string.extend(
+                        $this_method_u8s
+                            .by_ref()
+                            .map(|ch| char::from(ch))
+                            .take(length),
+                    );
+                    $char_string.extend($random_chars.by_ref().take((2 << 20) - length));
+                    black_box(
+                        $char_string
+                            .chars()
+                            .take_while(|ch| ch.$old_method())
+                            .count(),
+                    )
+                })
+            },
+        );
+
+        $c.bench_function(
+            concat!(
+                "new_",
+                stringify!($name),
+                "_count_starting_char_matches_cache_buster"
+            ),
+            |b| {
+                b.iter(|| {
+                    let length = (u32::from_ne_bytes([(); 4].map(|_| $random_u8s.next().unwrap()))
+                        % ((2 << 20) + 1)) as usize;
+                    $char_string.clear();
+                    $char_string.extend(
+                        $this_method_u8s
+                            .by_ref()
+                            .map(|ch| char::from(ch))
+                            .take(length),
+                    );
+                    $char_string.extend($random_chars.by_ref().take((2 << 20) - length));
+                    black_box(
+                        $char_string
+                            .chars()
+                            .take_while(|ch| ch.$new_method())
+                            .count(),
+                    )
+                })
+            },
+        );
+
+        $c.bench_function(
+            concat!(
+                "old_",
+                stringify!($name),
+                "_count_all_char_matches_cache_buster"
+            ),
+            |b| {
+                b.iter(|| {
+                    let length = (u32::from_ne_bytes([(); 4].map(|_| $random_u8s.next().unwrap()))
+                        % ((2 << 20) + 1)) as usize;
+                    $char_string.clear();
+                    $char_string.extend(
+                        $this_method_u8s
+                            .by_ref()
+                            .map(|ch| char::from(ch))
+                            .take(length),
+                    );
+                    $char_string.extend($random_chars.by_ref().take((2 << 20) - length));
+                    black_box($char_string.chars().filter(|ch| ch.$old_method()).count())
+                })
+            },
+        );
+
+        $c.bench_function(
+            concat!(
+                "new_",
+                stringify!($name),
+                "_count_all_char_matches_cache_buster"
+            ),
+            |b| {
+                b.iter(|| {
+                    let length = (u32::from_ne_bytes([(); 4].map(|_| $random_u8s.next().unwrap()))
+                        % ((2 << 20) + 1)) as usize;
+                    $char_string.clear();
+                    $char_string.extend(
+                        $this_method_u8s
+                            .by_ref()
+                            .map(|ch| char::from(ch))
+                            .take(length),
+                    );
+                    $char_string.extend($random_chars.by_ref().take((2 << 20) - length));
                     black_box($char_string.chars().filter(|ch| ch.$new_method()).count())
                 })
             },
@@ -318,8 +492,10 @@ fn criterion_benchmark(c: &mut Criterion) {
             ch
         });
 
-    let mut u8_string: Vec<u8> = Vec::with_capacity(64);
-    let mut char_string: String = String::with_capacity(256);
+    // 2 MiB buffer to exceed the L2 cache size.
+    let mut u8_string: Vec<u8> = Vec::with_capacity(2 << 20);
+    // 8 MiB buffer to exceed the L2 cache size.
+    let mut char_string: String = String::with_capacity(8 << 20);
 
     ascii_benches!(
         ascii,
