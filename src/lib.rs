@@ -41,7 +41,7 @@ pub trait IsAscii2 {
     fn is_ascii_whitespace_2(&self) -> bool;
 }
 
-impl const IsAscii2 for u8 {
+impl IsAscii2 for u8 {
     #[must_use]
     #[inline]
     fn is_ascii_2(&self) -> bool {
@@ -145,7 +145,7 @@ impl const IsAscii2 for u8 {
     }
 }
 
-impl const IsAscii2 for char {
+impl IsAscii2 for char {
     #[must_use]
     #[inline]
     fn is_ascii_2(&self) -> bool {
